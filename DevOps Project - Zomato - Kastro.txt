@@ -968,7 +968,7 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 ''
 ##for update:
 ''
-##helm repo update
+helm repo update
 ''
 ##Create a Kubernetes namespace for the Node Exporter:
 ''
@@ -1053,6 +1053,7 @@ Kind Request:
 Once after you have successfully deployed the App, kindly share your experience on LinkedIn by Tagging me and also provide the YouTube link of this project in your post, as it helps others to access the video quickly. 
 ========================================================================================================
 												HAPPY LEARNING
+
 
 
 
