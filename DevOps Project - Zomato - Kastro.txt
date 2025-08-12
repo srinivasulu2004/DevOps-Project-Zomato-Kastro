@@ -211,8 +211,90 @@ Install below plugins:
 11.1. Tools Configuration in Jenkins
 <Follow the process as explained in the video>
 
+
+
+
+## create token in sonarqube
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Here’s the clean step-by-step process to **create a token in SonarQube** — works for both personal tokens (per user) and project tokens.
+
+---
+
+## **1. Log in to SonarQube**
+
+Open your browser and go to:
+
+```
+http://<SonarQube_Server_IP>:9000
+```
+
+Log in with your username and password.
+(Default: `admin` / `admin` if unchanged).
+
+---
+
+## **2. Open the “My Account” Section**
+
+* Click your **user avatar** (top right corner).
+* Select **My Account**.
+
+---
+
+## **3. Go to the “Security” Tab**
+
+Inside My Account:
+
+* Click on **Security**.
+* You’ll see a **Tokens** section.
+
+---
+
+## **4. Create a New Token**
+
+* In **Generate Tokens**, type a **name** for the token (e.g., `jenkins-sonarqube`).
+* **Choose an expiration date** (optional — some versions don’t have this).
+* Click **Generate**.
+
+---
+
+## **5. Copy and Save the Token**
+
+* **IMPORTANT**: You will only see the token **once**.
+* Copy it and save it in a secure place (e.g., Jenkins credentials, `.env` file, or a password manager).
+
+---
+
+### **Example: Using Token in Jenkins**
+
+If you’re connecting Jenkins to SonarQube:
+
+1. Go to Jenkins → **Manage Jenkins** → **Manage Credentials**.
+2. Add a new **Secret Text** credential.
+3. Paste your token there.
+4. Reference it in your Jenkinsfile:
+
+   ```
+   withSonarQubeEnv('SonarQubeServer') {
+       sh 'sonar-scanner -Dsonar.login=$SONAR_TOKEN'
+   }
+   ```
+
+
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+
+
+
+
 11.2. Configuration of SonarQube Token in Jenkins in Jenkin
-<Follow the process as explained in the video>
+        <<<< follow the video>>>>
+
+LINK : https://youtu.be/GyoI6-I68aQ?si=KYrwl5ajNDUPKzVK
+
+
 
 Lets create another credentials for DockerHub. This is being done because, as soon as the docker image is created, it should get pushed to dockerhub. 
 <Follow the process as explained in the video>
@@ -971,6 +1053,7 @@ Kind Request:
 Once after you have successfully deployed the App, kindly share your experience on LinkedIn by Tagging me and also provide the YouTube link of this project in your post, as it helps others to access the video quickly. 
 ========================================================================================================
 												HAPPY LEARNING
+
 
 
 
