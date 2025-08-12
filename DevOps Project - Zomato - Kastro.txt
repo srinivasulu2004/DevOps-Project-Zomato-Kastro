@@ -72,10 +72,12 @@ sudo apt-get install trivy
 
 Verifiy Trivy installation: trivy --version
 
-8. Install Docker Scout
 
-             ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+8.                                   ###### Install Docker Scout #####
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
          From your screenshot, the exact command for installing Docker Scout as shown in the video is:
+
 ------>>> just login into you docker hub account  and use the following commands
 
 ```
@@ -96,13 +98,110 @@ So in order, the steps are:
 2. **Install Docker Scout** using the `curl` command above
 3. **Grant permissions** to the Docker socket so Scout can interact with Docker
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-9. Install SonarQube using Docker
+---------------------------------------------- Install SonarQube using Docker--------------------------------------------------------------------
+####### Install SonarQube using Docker ###
 $ docker run -d --name sonar -p 9000:9000 sonarqube:lts-community
 $ docker ps (You can see SonarQube container)
 
-<Follow the process as explained in the video>
+  -->> connect to your Sonarqube in  browser  <public ip >:9000
+  -->> you will see sonaqube page 
+    @@ username: admin
+    @@ password: admin (... after login if u want you can change them also......)
 
-10. Installation of Plugins in Jenkins
+
+                             (OR)
+
+
+## Update Package Repository and Upgrade Packages
+    $ sudo apt update
+    $ sudo apt upgrade
+## Add PostgresSQL repository
+    $ sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+    $ wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/pgdg.asc &>/dev/null
+## Install PostgreSQL
+    $ sudo apt update
+    $ sudo apt-get -y install postgresql postgresql-contrib
+    $ sudo systemctl enable postgresql
+## Create Database for Sonarqube
+    $ sudo passwd postgres
+    $ su - postgres
+    $ createuser sonar
+    $ psql 
+    $ ALTER USER sonar WITH ENCRYPTED password 'sonar';
+    $ CREATE DATABASE sonarqube OWNER sonar;
+    $ grant all privileges on DATABASE sonarqube to sonar;
+    $ \q
+    $ exit
+## Add Adoptium repository
+    $ sudo bash
+    $ wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc
+    $ echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
+ ## Install Java 17
+    $ apt update
+    $ apt install temurin-17-jdk
+    $ update-alternatives --config java
+    $ /usr/bin/java --version
+    $ exit 
+## Linux Kernel Tuning
+   # Increase Limits
+    $ sudo vim /etc/security/limits.conf
+    //Paste the below values at the bottom of the file
+    sonarqube   -   nofile   65536
+    sonarqube   -   nproc    4096
+
+    # Increase Mapped Memory Regions
+    sudo vim /etc/sysctl.conf
+    //Paste the below values at the bottom of the file
+    vm.max_map_count = 262144
+#### Sonarqube Installation ####
+## Download and Extract
+    $ sudo wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.9.0.65466.zip
+    $ sudo apt install unzip
+    $ sudo unzip sonarqube-9.9.0.65466.zip -d /opt
+    $ sudo mv /opt/sonarqube-9.9.0.65466 /opt/sonarqube
+## Create user and set permissions
+     $ sudo groupadd sonar
+     $ sudo useradd -c "user to run SonarQube" -d /opt/sonarqube -g sonar sonar
+     $ sudo chown sonar:sonar /opt/sonarqube -R
+## Update Sonarqube properties with DB credentials
+     $ sudo vim /opt/sonarqube/conf/sonar.properties
+     //Find and replace the below values, you might need to add the sonar.jdbc.url
+     sonar.jdbc.username=sonar
+     sonar.jdbc.password=sonar
+     sonar.jdbc.url=jdbc:postgresql://localhost:5432/sonarqube
+## Create service for Sonarqube
+$ sudo vim /etc/systemd/system/sonar.service
+//Paste the below into the file
+     [Unit]
+     Description=SonarQube service
+     After=syslog.target network.target
+
+     [Service]
+     Type=forking
+
+     ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
+     ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
+
+     User=sonar
+     Group=sonar
+     Restart=always
+
+     LimitNOFILE=65536
+     LimitNPROC=4096
+
+     [Install]
+     WantedBy=multi-user.target
+
+## Start Sonarqube and Enable service
+     $ sudo systemctl start sonar
+     $ sudo systemctl enable sonar
+     $ sudo systemctl status sonar
+
+## Watch log files and monitor for startup
+     $ sudo tail -f /opt/sonarqube/logs/sonar.log
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+10. Installation of Pluginss
 Install below plugins:
 <Follow the process as explained in the video>
 
@@ -112,7 +211,7 @@ Install below plugins:
 11.1. Tools Configuration in Jenkins
 <Follow the process as explained in the video>
 
-11.2. Configuration of SonarQube Token in Jenkins
+11.2. Configuration of SonarQube Token in Jenkins in Jenkin
 <Follow the process as explained in the video>
 
 Lets create another credentials for DockerHub. This is being done because, as soon as the docker image is created, it should get pushed to dockerhub. 
@@ -127,7 +226,85 @@ As soon as the build happens, i need to get an email notification to do that we 
 <Follow the process as explained in the video>
 
 13. Create webhook in SonarQube
-<Follow the process as explained in the video>
+           -----------------------------------webhook in  SonarQube------------------------------------------
+
+## **Why create a webhook in SonarQube?**
+
+A webhook in SonarQube is usually created so that after a scan, SonarQube can notify another system (like Jenkins) about the scan result automatically.
+
+---
+
+## **Steps to Create a Webhook in SonarQube**
+
+### **1. Open SonarQube in your browser**
+
+* URL format:
+
+  ```
+  http://<SonarQube_Server_IP>:9000
+  ```
+* Default credentials (if not changed):
+
+  * **Username**: `admin`
+  * **Password**: `admin`
+
+---
+
+### **2. Log in as an Admin**
+
+You must be logged in with an account that has admin permissions to create global webhooks.
+
+---
+
+### **3. Navigate to Webhooks Settings**
+
+* From the top menu:
+
+  * Go to **Administration** → **Configuration** → **Webhooks**
+  * Or for **project-specific**:
+
+    * Open your project → **Project Settings** → **Webhooks**
+
+---
+
+### **4. Click on “Create”**
+
+You’ll see a **Create Webhook** button.
+
+---
+
+### **5. Fill in the webhook details**
+
+* **Name**: Any descriptive name (e.g., `Jenkins-Webhook`)
+* **URL**: The endpoint of the service that should receive SonarQube’s POST request.
+
+  * Example for Jenkins:
+
+    ```
+    http://<jenkins_server>:8080/sonarqube-webhook/
+    ```
+* **Secret** (optional):
+  If you want extra security, set a secret. SonarQube will include an `X-Sonar-Webhook-HMAC-SHA256` header so the receiver can verify authenticity.
+
+---
+
+### **6. Save the Webhook**
+
+Click **Create** (or **Save**) to register it.
+
+---
+
+### **7. Test the Webhook (Optional)**
+
+* In the webhooks list, you can click the **Test** button to send a sample payload and check if the receiving system works.
+
+---
+
+✅ **Now whenever a SonarQube scan completes, it will POST a JSON payload to your webhook URL** — useful for triggering Jenkins pipelines, Slack messages, etc.
+
+---
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 14. Create Pipeline Job
 Before pasting the pipeline script, do the following changes in the script
@@ -323,16 +500,23 @@ web.enable-lifecycle allows for management of Prometheus through API calls.
 
 
 Enable and start Prometheus:
+'''
 sudo systemctl enable prometheus
 sudo systemctl start prometheus
+'''
 
 Verify Prometheus's status:
+'''
 sudo systemctl status prometheus
+''''
 
 Press Control+c to come out
 
 Access Prometheus in browser using your server's IP and port 9090:
+'''
 http://<your-server-ip>:9090
+
+'''
 
 If it doesn't work, in the web link of browser, remove 's' in 'https'. Keep only 'http' and now you will be able to see.
 You can see the Prometheus console.
@@ -484,6 +668,17 @@ Lets add the data source;
 
 Click on Dashboards in the left pane, you can see both the dashboards you have just added.
 
+[[[[[[HINT:
+
+
+------- for install kubernets cluste and  ARGO CD THE REPO  "Scripts-for-jenkins-real-time-
+"
+    AND  file "DevOps-Project-with-Jenkins-Maven-SonaQube-Docker-and-EKS"......................................................]]]]]]]
+
+
+
+
+
 ---------------------------------------------
 Creation of EKS cluster
 ---------------------------------------------
@@ -623,6 +818,16 @@ Let us deploy the same application in the EKS cluster also
 
 <Follow the process as explained in the video>
 
+
+HINT:
+
+
+------- for install kubernets cluste and  ARGO CD THE REPO  "Scripts-for-jenkins-real-time-"
+    AND  file "DevOps-Project-with-Jenkins-Maven-SonaQube-Docker-and-EKS"     after then follow the present repo from section
+   " Monitor Kubernetes with Prometheus".......................................................
+
+
+
 ------------------------------------------------------------
 15.6: Argo CD installation
 ------------------------------------------------------------
@@ -651,6 +856,10 @@ Wait for 5 minutes for the load balancer creation. Once the loadbalancer is crea
 
 Meanwhile execute the below commands in vs code editor
 
+
+
+
+
 ------------------------------------------------------------
 15.7: Monitor Kubernetes with Prometheus
 ------------------------------------------------------------
@@ -659,17 +868,43 @@ Additionally, you'll install the node exporter using Helm to collect metrics fro
 
 Install Node Exporter using Helm
 To begin monitoring your Kubernetes cluster, you'll install the Prometheus Node Exporter. This component allows you to collect system-level metrics from your cluster nodes. Here are the steps to install the Node Exporter using Helm:
+### install HELM  ###
+''
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-Add the Prometheus Community Helm repository:
+''
+#to check version :
+
+''
+helm version
+
+''
+
+##Add the Prometheus Community Helm repository:
+''
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-
-Create a Kubernetes namespace for the Node Exporter:
+''
+##for update:
+''
+##helm repo update
+''
+##Create a Kubernetes namespace for the Node Exporter:
+''
 kubectl create namespace prometheus-node-exporter
-
-Install the Node Exporter using Helm:
+''
+#Install the Node Exporter using Helm:
+''
 helm install prometheus-node-exporter prometheus-community/prometheus-node-exporter --namespace prometheus-node-exporter
+''
 
-Lets continue with load balancer thing of previous step; execute the below in VS code editor
+-------------- it now over setup helm and helm node expoerter ---------------- for monitor kubernetes---------------------------
+
+
+
+don't follow this  (use this only for knowledge)
+;;;;;;;;;;;
+
+------->>>>>>>Lets continue with load balancer thing of previous step; execute the below in VS code editor
 export ARGOCD_SERVER=`kubectl get svc argocd-server -n argocd -o json | jq --raw-output '.status.loadBalancer.ingress[0].hostname'`
 
 Execute the below command in powershell, if the command doesn't get executed in VS Code Editor
@@ -701,6 +936,9 @@ echo $env:ARGO_PWD
 You will see the password. copy and paste it in the argo cd homepage --->login
 
 <Follow the process as explained in the video>
+';;;;;;;;;;
+
+
 
 Note: In the repo, in Kubernetes folder, in the deployment.yml file, in the containers section change the dockerhub username
 
@@ -733,5 +971,6 @@ Kind Request:
 Once after you have successfully deployed the App, kindly share your experience on LinkedIn by Tagging me and also provide the YouTube link of this project in your post, as it helps others to access the video quickly. 
 ========================================================================================================
 												HAPPY LEARNING
+
 
 
